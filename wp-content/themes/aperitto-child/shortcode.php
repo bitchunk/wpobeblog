@@ -1,5 +1,11 @@
 <?php
 add_shortcode('obeguu_list', 'obeguu_list');
+
+add_action(
+  'wp_enqueue_scripts',
+  'obeguu_common_script'
+);
+
 function obeguu_list() {
   $list = load_date_list();
 

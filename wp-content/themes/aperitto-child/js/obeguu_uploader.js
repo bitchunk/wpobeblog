@@ -115,7 +115,6 @@ document.addEventListener('DOMContentLoaded', () => {
         );
       }
       // 更新・削除結果に応じて一覧を更新
-      debugger
       const message = (actions[formData.get('log-action')] ?? '処理') + 'しました。';
       result.textContent =
       `${data.data.passfiles.length}件${message}`;

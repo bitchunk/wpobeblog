@@ -6,6 +6,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const formData = new FormData(form);
     let monthQuery = '&obeguu-month=' + (formData.get('obeguu-month') ?? '1');
 
-    window.location.href = 'admin.php?page=oberin_logs_manage&obeguu-year=' + formData.get('obeguu-year') + monthQuery;
+    window.location.href = window.location.pathname + '?page=oberin_logs_manage&obeguu-year=' + formData.get('obeguu-year') + monthQuery;
+    // window.location.href = 'admin.php?page=oberin_logs_manage&obeguu-year=' + formData.get('obeguu-year') + monthQuery;
   }));
 });

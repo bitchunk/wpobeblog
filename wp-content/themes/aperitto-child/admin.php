@@ -3,33 +3,66 @@
 $talk_reg = '/^\(+[^()]+\)+:\s/';
 $login_reg = '/^Welcome\./';
 $normalize_words = [
-  ['/^You\sstart\s(\w+)\s.+/', 'start'], // any
-  ['/^You\sbegin\s.+/', 'start'], // craft any
-  ['/^You\sare\sbeginning\s(\w+)\s.+/', 'start'], // cooking
-  ['/^You\sapply\s(\w+)\s.+/', 'start'], // healing
-  ['/^You\enter\s(\w+)\s.+/', 'start'], // healing
-  ['/^No\shidden\s(\w+)\s.+/', 'start'], // hiddeing
-  // ['/^No\shidden\s(\w+)\s.+/', 'start'], tracking
+  // 作業開始
+  ['/^You\sstart\s([\w\s]+)\s.+/', 'start'], // Mining / lumberjucking
+  ['/^You\sbegin\s.+/', 'start'], // Fishing/Making/Crafting/Cooking/Carving/Mixing
 
-  ['/^You\sfail\sto\s(\w+)\s?.+/', 'result'], //
-  ['/^You\ssuccessfully\s(\w+)\s.+/', 'result'], //
-  ['/^You\scontinue\s(\w+)\s.+/', 'result'],  //
-  ['/^There\sis\snothing\s(\w+)\s.+/', 'result'],  //
-  ['/^You\shave\s.+/', 'result'], // lockpick
-  ['/^Your\swounds\s.+/', 'result'], // healing
-  ['/^That\screature\s(\w+)\s.+/', 'result'], // Anatomy
-  ['/^You\sare\sunable\sto\s(\w+)\s.+/', 'result'], // Anatomy
-  ['/^You\smust\s(\w+)\s.+/', 'result'], // Anatomy
+  // 作業結果
+  ['/^You\ssuccessfully\s([\w\s(+)]+)\s.+/', 'result'], // Making/Crafting/Cooking/Carving/Mixing
 
-  // ['/^You\s(\w+)\s.+/', 'result'],
-  // ['/^Your\s(\w+)\s.+/', 'result'],
+  ['/^You\scan\'t\ssee\syour\starget\./', 'result'], // Taming
+  ['/^You\sfail\sto\smine\sany\sone\./', 'result'], // Mining
+  ['/^You\sfail\sto\sharvest\sany\slogs\./', 'result'], // Lumberjucking
+  ['/^You\sfail\sto\scatch\sany\sfish\./', 'result'], // Fishing
 
-  //その場で表示（作業にしない）
-  // ['/^The\sspell\s.+/', 'concat'],
-  // ['/^Taken:\s+(\w+)\s.+/', 'concat'],
-  // ['/^You\sare\s(\w+)\s?\.$/', 'concat'],
-  // ['/^Sold:\s+(\w+)\s?\(.+\)$/', 'concat'],
-  // ['/^Bought:\s+(\w+)\s?\(.+\)$/', 'concat'],
+  ['/^You\sfail\sto\scraft\s([\w\s(+)]+)\s?.+/', 'result'], // Crafting
+  ['/^You\sfail\sto\scook\sthe\sfood\.+/', 'result'], // Cooking
+  ['/^You\sfail\sto\scarve\sthe\sshaft\.+/', 'result'], // Carving
+  ['/^You\sfail\sto\smix\s([\w\s]+)\s?.+/', 'result'], // Mixing
+
+  ['/^You\scontinue\s([\w\s]+)\s.+/', 'result'],  // minning/lumberjucking
+
+  ['/^You\smust\starget\sto\smine\sfor\sore\./', 'action'], // Mining
+  ['/^You\smust\starget\sto\stree\sfor\swood\./', 'action'], // Lumberjucking
+  ['/^You\smust\sbe\sstanding\snear\swater\sto\sfish\./', 'action'], // Fishing
+  ['/^You\smust\sbe\sstanding\snear\sa\sforge\./', 'action'], // Blacksmithing
+  ['/^You\smust\sbe\sstanding\snear\sa\sfire\./', 'action'], // Cooking
+  ['/^You\sdon\'t\shave\senough\smana\sto\scast\sthat\sspell\./', 'result'],  // Mixing
+  ['/^You\sdon\'t\shave\senough\sreagents\./', 'result'],  // Mixing
+
+  ['/^There\sis\snothing\s([\w\s]+)\s.+/', 'result'],  // hervesting
+
+  //アクション、その場でまとめて表示
+  ['/^You\sfail\sto\s([\w\s]+)\s?.+/', 'action'], // any
+  ['/^That\screature\s([\w\s]+)\s.+/', 'action'], // Anatomy/Taming/Healing
+  ['/^You\smust\starget\sa\screature\s([\w\s]+)\s?\.$/', 'action'], // Anatomy/Taming/Healing/Identifing
+  ['/^You\sare\s([\w\s]+)\s?\.$/', 'action'], // Hidding/hunger
+
+  ['/^You\sapply\sthe\sbandages\./', 'action'], // healing
+  ['/^Your\swounds\sare\sbeing\sbandaged\./', 'action'], // healing
+  ['/^You\sdon\'t\shave\sany\sbandages\./', 'action'],  // Healing
+
+  ['/^You\sare\sunable\sto\s([\w\s]+)\s.+/', 'action'], // Anatomy
+
+  ['/^You\senter\sa\smeditative\strance\.\.\./', 'action'], // Meditation
+
+  ['/^Hidden\screatures\sare\srevealed\./', 'action'], // Detect hiddeing
+  ['/^No\shidden\screatures\sare\sdetected\./', 'action'], // Detect hiddeing
+
+  ['/^You\shave\s.+/', 'action'], // Lock picking
+  ['/^That\scontainer\s([\w\s]+)\s.+/', 'action'], // Lock picking/Removing trap
+  ['/^You\sare\sbeginning\s([\w\s]+)\s.+/', 'action'], // Eating
+
+  ['/^The\sspell\sfizzles\./', 'action'], // Spelling
+
+  ['/^Dropped:\s+([\w\s(+):]+)$/', 'action'], //Dropping
+  ['/^Sold:\s+([\w\s(+):]+)$/', 'action'], // Selling
+  ['/^Taken([\w\s]+)?:\s+([\w\s(+)]+)+/', 'action'], // Taking
+  ['/^Given([\w\s]+)?:\s+([\w\s(+)]+)+/', 'action'], // Giving
+  ['/^Bought:\s+([\w\s(+):]+)$/', 'action'], //Buying
+  ['/^Paid:\s+([\w\s]+)$/', 'action'], //Paying
+
+  //インベントリ、その場でまとめて表示
 ];
 //Workを停止したと思われる会話のカウント数
 define('OBELIN_LOG_NORMALIZE_TALK_COUNT', 8);
@@ -45,11 +78,6 @@ function obelin_log_unpack($files, $i) {
   ];
 }
 
-// ログのマージ（まとめ）
-// add_action(
-//   'admin_post_obelin_log_normalize'
-//   , 'obelin_log_normalize'
-// );
 // ログを正規化(utf-8)処理
 function obelin_log_normalize($text) {
   //SJIS -> UTF-8
@@ -61,8 +89,9 @@ function obelin_log_normalize($text) {
   $textl = explode("\n", $text);
   $text_normalized = [];
   $work_text_stack = []; // 会話まじり作業
-  $concat_text_stack = []; // 即決作業
+  $action_text_stack = []; // 即決作業
   $work_start = [];// 会話まじり作業の連続開始情報
+  $action_start = [];// 即時結果作業の連続開始情報
   $lasti = count($textl);
   $talk_count = 0;
   // 一行ずつ処理
@@ -71,20 +100,30 @@ function obelin_log_normalize($text) {
   foreach($textl as $i => $t) {
     $last_line = $i +1 == $lasti;
     $is_login = preg_match($login_reg, $t);
+    $is_action = false;
 
     //作業内容
     $is_normalize = false;
     foreach($normalize_words as $v) {
-      // TODO concat タイプのログをまとめる
-      if (preg_match($v[0], $t, $m)) {
-        $work_text_stack[] = $t;
-        // if (isset($m[0]) && empty($work_start[$t])) {
-        if (isset($m[0])) {
-          if (empty($work_start[$t])) {
+      list($word, $type) = $v;
+      if (preg_match($word, $t, $match)) {
+        $start_line = count($text_normalized); // 作業開始行
+        if (isset($match[0])) {
+          if ($type == 'start') {
             //作業開始を記録
-            $work_start[$t] = $v[1] == 'start' ? count($text_normalized) : false;
-          //   $work_concat[] =
-          // } else if (empty($work_concat[$t])) {
+            if (empty($work_start[$t])){
+              $work_start[$t] = $start_line;
+            }
+            $work_text_stack[] = $t; // すべてのスタック
+          } elseif ($type == 'action'){
+            if (empty($action_start[$t])){
+              $action_start[$t] = $start_line;
+              var_dump($start_line, $t);
+            }
+            $action_text_stack[] = $t; // 即時結果のスタック
+            $is_action = true;
+          } else {
+            $work_text_stack[] = $t; // すべてのスタック
           }
         }
         $talk_count = 0;
@@ -100,25 +139,59 @@ function obelin_log_normalize($text) {
       //作業中に発生した会話をカウント
       $talk_count += 1;
     }
-    //作業をストップしたと思われる会話のカウントにて作業結果を出力
-    if (!empty($work_text_stack) && ($talk_count == 8 || $is_login ||  $last_line)){
-      $text_normalized[] = '[**Work results**]';
-      foreach(array_count_values($work_text_stack) as $w => $num) {
-        $wn = $num > 1 ? "$w (x $num)" : $w;
-        if ($work_start[$w]) {
-          array_splice($text_normalized, $work_start[$w], 0, ['[**Work start**]', $wn]);
-        } else {
-          $text_normalized[] = $wn;
-        }
+    $force_output = $is_login ||  $last_line; // 強制出力
+
+    // アクションをストップしたと思われる会話のカウントにて結果を出力
+    if (!empty($action_text_stack) && ($talk_count == OBELIN_LOG_NORMALIZE_TALK_COUNT || $force_output)) {
+      // $inserts = ['[**Actions result**]'];
+      $inserted = 0; // 挿入した行をカウント
+      foreach(array_count_values($action_text_stack) as $w => $num) {
+        $wn = $num > 1 ? "- $w (x $num)" : "- $w";
+        // $inserts[] = $wn;
+        array_splice($text_normalized, $action_start[$w] + $inserted, 0, $wn);
+        $inserted += 1;
       }
-      $work_start = [];
-      $talk_count = 0;
-      $work_text_stack = []; //作業スタックをリセット
+      // $w = array_shift($action_start);
+      // var_dump( count($text_normalized), $action_text_stack);
+      // $inserts = ['[**Actions result**]'];
+      // foreach(array_count_values($action_text_stack) as $w => $num) {
+      //   $wn = $num > 1 ? "- $w (x $num)" : "- $w";
+      //   $inserts[] = $wn;
+      // }
+      // $w = array_shift($action_start);
+      // array_splice($text_normalized, $w, 0, $inserts);
+      $action_start = [];
+      $action_text_stack = []; //作業スタックをリセット
     }
-    // if (!empty($concat_text_stack) && || $is_login ||  $last_line) {
-    //   $talk_count = max($talk_count-1, 0);
-    //
-    // }
+
+    //作業をストップしたと思われる会話のカウントにて結果を出力
+    if (!empty($work_text_stack) && ($talk_count == OBELIN_LOG_NORMALIZE_TALK_COUNT || $force_output)){
+      $insert_start = [];
+      $insert_result = [];
+      $insert_index_start = null;
+      foreach(array_count_values($work_text_stack) as $w => $num) {
+        $wn = $num > 1 ? "- $w (x $num)" : "- $w";
+        if (isset($work_start[$w])) {
+          $insert_start[] = $wn;
+          $insert_index_start = $insert_index_start ?? $work_start[$w];
+        } else {
+          $insert_result[] = $wn;
+        }
+        $inserts = [];
+      }
+      if (!empty($insert_start)) {
+        array_unshift($insert_start, '[**Works start**]');
+        array_splice($text_normalized, $insert_index_start, 0, $insert_start);
+      }
+      if (!empty($insert_result)) {
+        array_unshift($insert_result, '[**Works result**]');
+        array_splice($text_normalized, -1, 0, $insert_result);
+      }
+
+      $work_start = [];
+      $work_text_stack = []; //作業スタックをリセット
+      $talk_count = 0;
+    }
     $text_normalized[] = $t;
   }
 
