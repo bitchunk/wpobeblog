@@ -118,7 +118,7 @@ function obelin_log_normalize($text) {
           } elseif ($type == 'action'){
             if (empty($action_start[$t])){
               $action_start[$t] = $start_line;
-              var_dump($start_line, $t);
+              // var_dump($start_line, $t);
             }
             $action_text_stack[] = $t; // 即時結果のスタック
             $is_action = true;
