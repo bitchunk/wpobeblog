@@ -7,6 +7,7 @@ $normalize_words = [
   ['/^You\sbegin\s.+/', 'start'], // craft any
   ['/^You\sare\sbeginning\s(\w+)\s.+/', 'start'], // cooking
   ['/^You\sapply\s(\w+)\s.+/', 'start'], // healing
+  ['/^You\enter\s(\w+)\s.+/', 'start'], // healing
   ['/^No\shidden\s(\w+)\s.+/', 'start'], // hiddeing
   // ['/^No\shidden\s(\w+)\s.+/', 'start'], tracking
 
@@ -24,9 +25,11 @@ $normalize_words = [
   // ['/^Your\s(\w+)\s.+/', 'result'],
 
   //その場で表示（作業にしない）
-  // ['/^The\sspell\s.+/', 'result'],
-  // ['/^Taken:\s+(\w+)\s.+/', 'result'],
-  // ['/^You\sare\s(\w+)\s?\.$/', 'result'],
+  // ['/^The\sspell\s.+/', 'concat'],
+  // ['/^Taken:\s+(\w+)\s.+/', 'concat'],
+  // ['/^You\sare\s(\w+)\s?\.$/', 'concat'],
+  // ['/^Sold:\s+(\w+)\s?\(.+\)$/', 'concat'],
+  // ['/^Bought:\s+(\w+)\s?\(.+\)$/', 'concat'],
 ];
 //Workを停止したと思われる会話のカウント数
 define('OBELIN_LOG_NORMALIZE_TALK_COUNT', 8);
@@ -57,8 +60,9 @@ function obelin_log_normalize($text) {
 
   $textl = explode("\n", $text);
   $text_normalized = [];
-  $work_text_stack = [];
-  $work_start = [];
+  $work_text_stack = []; // 会話まじり作業
+  $concat_text_stack = []; // 即決作業
+  $work_start = [];// 会話まじり作業の連続開始情報
   $lasti = count($textl);
   $talk_count = 0;
   // 一行ずつ処理
@@ -71,11 +75,17 @@ function obelin_log_normalize($text) {
     //作業内容
     $is_normalize = false;
     foreach($normalize_words as $v) {
+      // TODO concat タイプのログをまとめる
       if (preg_match($v[0], $t, $m)) {
         $work_text_stack[] = $t;
-        if (isset($m[0]) && empty($work_start[$t])) {
-          //作業開始を記録
-          $work_start[$t] = $v[1] == 'start' ? count($text_normalized) : false;
+        // if (isset($m[0]) && empty($work_start[$t])) {
+        if (isset($m[0])) {
+          if (empty($work_start[$t])) {
+            //作業開始を記録
+            $work_start[$t] = $v[1] == 'start' ? count($text_normalized) : false;
+          //   $work_concat[] =
+          // } else if (empty($work_concat[$t])) {
+          }
         }
         $talk_count = 0;
         $is_normalize = true;
@@ -105,6 +115,10 @@ function obelin_log_normalize($text) {
       $talk_count = 0;
       $work_text_stack = []; //作業スタックをリセット
     }
+    // if (!empty($concat_text_stack) && || $is_login ||  $last_line) {
+    //   $talk_count = max($talk_count-1, 0);
+    //
+    // }
     $text_normalized[] = $t;
   }
 
@@ -113,11 +127,11 @@ function obelin_log_normalize($text) {
 
 // 正規化ログの保存処理
 function obelin_log_save($name, $text_raw, $text_nz) {
-  $obegu_path = get_obegu_path($name);
-  // var_dump($obegu_path, $log_date);
+  $obeguu_path = get_obeguu_path($name);
+  // var_dump($obeguu_path, $log_date);
 
-  $raw_dir = trailingslashit($obegu_path). 'raw';
-  $nz_dir = trailingslashit($obegu_path). 'normalize';
+  $raw_dir = trailingslashit($obeguu_path). 'raw';
+  $nz_dir = trailingslashit($obeguu_path). 'normalize';
 
   if (!(wp_mkdir_p($raw_dir) && wp_mkdir_p($nz_dir))) {
     wp_send_json_error(array('message' => '保存先を作成できませんでした。'), 500);
@@ -155,9 +169,9 @@ function obelin_log_date_update($name, $raw_name, $nz_name) {
   }
 
   // // すでに作成済みのはず
-  $obegu_path = get_obegu_path($name);
-  $date_path = $obegu_path. 'logdate.csv';
-  $date_pre_path = $obegu_path. 'logdate_pre.csv';
+  $obeguu_path = get_obeguu_path($name);
+  $date_path = $obeguu_path. 'logdate.csv';
+  $date_pre_path = $obeguu_path. 'logdate_pre.csv';
   // ./oberin-logs/2005/logdate.txt
 
   // 読み込み元ファイルがなければ生成
@@ -211,7 +225,7 @@ function obelin_log_date_update($name, $raw_name, $nz_name) {
       isset($nz_name) ? $nz_name : '-',
       $upload_date, // upload_date
       $update_date, // update_date
-      obegu_date_parse($name)["month"],// month
+      obeguu_date_parse($name)["month"],// month
     ];
   }
   // var_dump($rows);
@@ -220,8 +234,8 @@ function obelin_log_date_update($name, $raw_name, $nz_name) {
     if ($a[0] === false || $b[0] === false) {
       return strnatcasecmp($a[0] ?? '', $b[0] ?? '');
     }
-    $da = obegu_date_parse($a[0]);
-    $db = obegu_date_parse($b[0]);
+    $da = obeguu_date_parse($a[0]);
+    $db = obeguu_date_parse($b[0]);
 
     $dateA = strtotime("{$da['year']}-{$da['month']}-{$da['day']} 0:0:0" );
     $dateB = strtotime("{$db['year']}-{$db['month']}-{$db['day']} 0:0:0");
@@ -244,10 +258,10 @@ function obelin_log_date_update($name, $raw_name, $nz_name) {
     return '書き込み先CSVファイルのリネーム失敗';
   }
 
-  // var_dump($rows, $obegu_path);
+  // var_dump($rows, $obeguu_path);
   // 年代フォルダが空だったらファルダごと消す
   if (empty($rows)) {
-    if (rrmdir($obegu_path) === false) {
+    if (rrmdir($obeguu_path) === false) {
       return '年代フォルダの削除失敗';
     }
   }
@@ -258,25 +272,25 @@ function obelin_log_date_update($name, $raw_name, $nz_name) {
 // ログアップローダー
 add_action(
   'admin_enqueue_scripts',
-  'obegu_enqueue_uploader'
+  'obeguu_enqueue_uploader'
 );
 
-function obegu_enqueue_uploader($hook_suffix) {
+function obeguu_enqueue_uploader($hook_suffix) {
   // 固定ページとして登録した管理画面の例
   if ($hook_suffix !== 'toplevel_page_oberin_logs_manage') {
     return;
   }
   wp_enqueue_script(
-    'obegu-uploader',
-    get_stylesheet_directory_uri() . '/js/obegu_uploader.js',
+    'obeguu-uploader',
+    get_stylesheet_directory_uri() . '/js/obeguu_uploader.js',
     [],
     '1.0.0',
     true
   );
 
   wp_localize_script(
-    'obegu-uploader',
-    'obeguUploader',
+    'obeguu-uploader',
+    'obeguuUploader',
     [
       'ajaxUrl' => admin_url('admin-ajax.php'),
       'nonce'   => wp_create_nonce('obelin_log_upload'),
@@ -284,7 +298,7 @@ function obegu_enqueue_uploader($hook_suffix) {
   );
 }
 
-function obegu_process($name, $path, $update = null) {
+function obeguu_process($name, $path, $update = null) {
   // var_dump($file);
   $text = file_get_contents($path);
   if ($text === false) {
@@ -353,7 +367,7 @@ function obelin_log_upload() {
     }
 
     $id = $name ? $name : ('file-no.' . $i);
-    $error = obegu_process($name, $tmp_name);
+    $error = obeguu_process($name, $tmp_name);
     if ($error !== false) {
       $errors[] = [$id, $error];
       continue;
@@ -377,18 +391,18 @@ function obelin_log_bulk_normalize() {
   $passfiles = [];
   foreach(@$_POST['logs'] as $name) {
     $id = $name ? $name : ('file-no.' . $i);
-    $obegu_path = get_obegu_path($name);
-    $raw_dir = trailingslashit($obegu_path). 'raw';
+    $obeguu_path = get_obeguu_path($name);
+    $raw_dir = trailingslashit($obeguu_path). 'raw';
     // var_dump($raw_dir. $name, $path);
 
     // var_dump($name, trailingslashit($raw_dir). $name);
-    $error = obegu_process($name, trailingslashit($raw_dir). $name, true); // oberin_logs/2002/raw/Log 1_1_2002
+    $error = obeguu_process($name, trailingslashit($raw_dir). $name, true); // oberin_logs/2002/raw/Log 1_1_2002
     if ($error !== false) {
       $errors[] = [$id, $error];
       continue;
     }
-    // $raw_dir = trailingslashit($obegu_path). 'raw';
-    // $nz_dir = trailingslashit($obegu_path). 'normalize';
+    // $raw_dir = trailingslashit($obeguu_path). 'raw';
+    // $nz_dir = trailingslashit($obeguu_path). 'normalize';
     // $raw_path = trailingslashit($raw_dir). $name;
     // $nz_path = trailingslashit($nz_dir). $name;
     // PASSしたファイル
@@ -413,10 +427,10 @@ function obelin_log_bulk_delete() {
   $passfiles = [];
   foreach(@$_POST['logs'] as $name) {
     // ログファイルを削除
-    $obegu_path = get_obegu_path($name);
+    $obeguu_path = get_obeguu_path($name);
 
-    $raw_dir = trailingslashit($obegu_path). 'raw';
-    $nz_dir = trailingslashit($obegu_path). 'normalize';
+    $raw_dir = trailingslashit($obeguu_path). 'raw';
+    $nz_dir = trailingslashit($obeguu_path). 'normalize';
     $raw_path = trailingslashit($raw_dir). $name;
     $nz_path = trailingslashit($nz_dir). $name;
     if (!preg_match('/\.txt$/i', $nz_path)) {
@@ -475,10 +489,15 @@ function add_custom_menu_page() {
 
   $loglist = implode("\n", $loglist);
   // optionフォームを取得
-  list($year_options, $month_options) = obegu_date_options();
+  list($year_options, $month_options) = obeguu_date_options();
 
   ?>
   <style>
+    .tablenav, .bulkactions {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+    }
   </style>
   <div class="wrap">
     <div>
@@ -486,7 +505,7 @@ function add_custom_menu_page() {
     </div>
 
     <div>
-      <form id="obegu-form" method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
+      <form id="obeguu-form" method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
         <!-- <input type="hidden" name="action" value="obelin_log_normalize"> -->
         <?php
         wp_nonce_field(
@@ -508,15 +527,16 @@ function add_custom_menu_page() {
             <?php submit_button('実行する', 'primary', 'log-bulk-action', false); ?>
           </div>
           <div class="pagaing year">
-            <select name="obegu-year">
+            <select name="obeguu-year">
               <?php echo $year_options; ?>
             </select>
           </div>
           <div class="pagaing month">
-            <select name="obegu-month">
+            <select name="obeguu-month">
               <?php echo $month_options; ?>
             </select>
           </div>
+          <a href="/loglist">ログの一覧ページ</a>
         </div>
 
         <table class="wp-list-table widefat fixed striped table-view-list posts"><thead><tr>

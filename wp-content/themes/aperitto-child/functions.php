@@ -14,23 +14,23 @@ add_action( 'wp_enqueue_scripts', function () {
 
 add_action(
   'admin_enqueue_scripts',
-  'obegu_common_script'
+  'obeguu_common_script'
 );
-function obegu_common_script() {// 共通JS
+function obeguu_common_script() {// 共通JS
   wp_enqueue_script(
-    'obegu-interface',
-    get_stylesheet_directory_uri() . '/js/obegu_interface.js',
+    'obeguu-interface',
+    get_stylesheet_directory_uri() . '/js/obeguu_interface.js',
     [],
     '1.0.0',
     true
   );
 }
 // ショートコード
-require_once 'shortcode.php';
+require_once get_stylesheet_directory(). '/shortcode.php';
 
 // 管理ページを表示
 if (is_admin()) {
-  require_once 'admin.php';
+  require_once get_stylesheet_directory(). '/admin.php';
 }
 
 function isPost($key, $value = null) {
@@ -47,8 +47,8 @@ function isGet($key, $value = null) {
   return false;
 }
 
-$log_year = isGet('obegu-year');
-$log_month = isGet('obegu-month');
+$log_year = isGet('obeguu-year');
+$log_month = isGet('obeguu-month');
 $log_date = false;
 if ($log_year && $log_month) {
   $log_date = "1-$log_month-$log_year";
@@ -77,7 +77,7 @@ function rrmdir($dir) {
 }
 
 // Wordpressのアップロード階層ディレクトリ
-function get_obegu_upload_dir() {
+function get_obeguu_upload_dir() {
   $upload_dir = wp_upload_dir();
   if (!empty($upload_dir['error'])) {
     wp_send_json_error(array('message' => $upload_dir['error']), 500);
@@ -87,22 +87,22 @@ function get_obegu_upload_dir() {
 }
 
 // ログの入った階層までのURL
-function get_obegu_current_url() {
-  $dir = get_obegu_upload_dir();
+function get_obeguu_current_url() {
+  $dir = get_obeguu_upload_dir();
   // $date : 'Log 1-1-2002'
   $base_url = trailingslashit($dir['baseurl']) . 'oberin-logs';
   return $base_url;
 }
 
-function get_obegu_current_dir() {
-  $dir = get_obegu_upload_dir();
+function get_obeguu_current_dir() {
+  $dir = get_obeguu_upload_dir();
   // $date : 'Log 1-1-2002'
   $base_dir = trailingslashit($dir['basedir']) . 'oberin-logs';
   return $base_dir;
 }
 
-function obegu_default_year($name = null) {
-  $base_path = get_obegu_current_dir();
+function obeguu_default_year($name = null) {
+  $base_path = get_obeguu_current_dir();
   if (empty($name)) {
     $year_dirs = glob($base_path. '/*', GLOB_ONLYDIR);
     $name = !empty($year_dirs) ? '1-1-'. basename($year_dirs[0]) : '1-1-2002';
@@ -110,28 +110,28 @@ function obegu_default_year($name = null) {
   return $name;
 }
 
-function obegu_date_parse($date) {
+function obeguu_date_parse($date) {
   return date_parse_from_format('n-j-Y', preg_replace('/_/', '-', $date) ?? null);
 }
 
-function get_obegu_link($name = null) {
-  $base_url = get_obegu_current_url();
+function get_obeguu_link($name = null) {
+  $base_url = get_obeguu_current_url();
   if (empty($name)) {
-    $name = obegu_default_year();
+    $name = obeguu_default_year();
   }
-  $year = obegu_date_parse($name)["year"];
+  $year = obeguu_date_parse($name)["year"];
   // oberin-logs/2002
   $year_dir = trailingslashit($base_url). $year;
   // var_dump();
   return trailingslashit($year_dir);
 }
 
-function get_obegu_path($name = null) {
+function get_obeguu_path($name = null) {
   if (empty($name)) {
-    $name = obegu_default_year();
+    $name = obeguu_default_year();
   }
-  $year = obegu_date_parse($name)["year"];
-  $base_dir = get_obegu_current_dir();
+  $year = obeguu_date_parse($name)["year"];
+  $base_dir = get_obeguu_current_dir();
   $year_dir = trailingslashit($base_dir). $year;
 
   $path = trailingslashit($year_dir);
@@ -140,8 +140,8 @@ function get_obegu_path($name = null) {
 }
 
 // 年代フォルダを取得
-function get_obegu_dirs() {
-  $base_dir = get_obegu_current_dir();
+function get_obeguu_dirs() {
+  $base_dir = get_obeguu_current_dir();
   $year_dirs = glob($base_dir. '/*', GLOB_ONLYDIR);
   $dirs = [];
   foreach($year_dirs as $dir) {
@@ -155,13 +155,13 @@ $month_list = [];
 // ログファイルのリストを取得
 function load_date_list($year = null, $month = null) {
   global $log_date, $log_month, $month_list;
-  $obegu_path = get_obegu_path($log_date);
+  $obeguu_path = get_obeguu_path($log_date);
 
-  if (is_dir($obegu_path) === false) {
+  if (is_dir($obeguu_path) === false) {
     return []; // 'ディレクトリがありません'
   }
 
-  $date_path = $obegu_path. 'logdate.csv';
+  $date_path = $obeguu_path. 'logdate.csv';
   // var_dump($log_date,$date_path);
   if (file_exists($date_path) === false) {
     return []; // 'CSVがありません'
@@ -209,9 +209,9 @@ function load_date_list($year = null, $month = null) {
 }
 
 // ログの日付選択フォームを生成
-function obegu_date_options() {
+function obeguu_date_options() {
   global $log_year, $log_month, $month_list;
-  $dirs = get_obegu_dirs();
+  $dirs = get_obeguu_dirs();
   $year_options = [];
   $month_options = [];
   // var_dump($log_year, $log_month);
