@@ -71,7 +71,7 @@ $normalize_words = [
 define('OBELIN_LOG_NORMALIZE_TALK_COUNT', 8);
 
 // ログを開封処理
-function obelin_log_unpack($files, $i) {
+function oberin_log_unpack($files, $i) {
   return [
     $files['name'][$i],
     $files['type'][$i],
@@ -82,7 +82,7 @@ function obelin_log_unpack($files, $i) {
 }
 
 // ログを正規化(utf-8)処理
-function obelin_log_normalize($text) {
+function oberin_log_normalize($text) {
   //SJIS -> UTF-8
   $text = mb_convert_encoding($text, 'UTF-8', 'SJIS');
   // $from_encoding = mb_detect_encoding($text, 'ASCII, ISO-2022-JP, UTF-8, EUC-JP, SJIS, UTF-8', true);
@@ -198,7 +198,7 @@ function obelin_log_normalize($text) {
 }
 
 // 正規化ログの保存処理
-function obelin_log_save($name, $text_raw, $text_nz) {
+function oberin_log_save($name, $text_raw, $text_nz) {
   $obeguu_path = get_obeguu_path($name);
   // var_dump($obeguu_path, $log_date);
 
@@ -235,7 +235,7 @@ function obelin_log_save($name, $text_raw, $text_nz) {
 }
 
 // ログの更新日など記録処理（エラーでメッセージを返す）
-function obelin_log_date_update($name, $raw_name, $nz_name) {
+function oberin_log_date_update($name, $raw_name, $nz_name) {
   if (!isset($raw_name) && !isset($nz_name)) {
     return false;
   }
@@ -377,19 +377,19 @@ function obeguu_process($name, $path, $update = null) {
     return '（アップロード・保管）ファイルの読み込み失敗';
   }
   // ログを正規化(utf-8)
-  $utf_text = obelin_log_normalize($text);
+  $utf_text = oberin_log_normalize($text);
   if ($utf_text === false) {
     return 'ログの正規化失敗';
   }
   // var_dump($utf_text);
   // 正規化ログを保存
-  $filenames = obelin_log_save($name, $text, $utf_text);
+  $filenames = oberin_log_save($name, $text, $utf_text);
   if ($filenames === false) {
     return 'ログの保存失敗';
   }
   list($name, $raw_name, $nz_name) = $filenames;
   // ログの更新日など記録
-  $error = obelin_log_date_update($name, $raw_name, !$update ? $nz_name : null);
+  $error = oberin_log_date_update($name, $raw_name, !$update ? $nz_name : null);
   if ($error !== false) {
     return $error;
   }
@@ -416,17 +416,17 @@ function obeguu_ajax() {
 
 
   if (isPost('log-action', 'current')) {
-    obelin_log_current_update();
+    oberin_log_current_update();
     return;
   }
 
   if (isPost('log-action', 'normalize')) {
-    obelin_log_bulk_normalize();
+    oberin_log_bulk_normalize();
     return;
   }
 
   if (isPost('log-action', 'delete')) {
-    obelin_log_bulk_delete();
+    oberin_log_bulk_delete();
     return;
   }
 
@@ -435,8 +435,8 @@ function obeguu_ajax() {
   $passfiles = [];
   foreach($files['name'] as $i => $v) {
     // ログを展開
-    // list($name, $text, $error) = obelin_log_unpack($file);
-    list($name, $type, $tmp_name, $error, $size) = obelin_log_unpack($files, $i);
+    // list($name, $text, $error) = oberin_log_unpack($file);
+    list($name, $type, $tmp_name, $error, $size) = oberin_log_unpack($files, $i);
     // var_dump($name, $type, $tmp_name, $error, $size);
     if ($error !== UPLOAD_ERR_OK) {
       $errors[] = [$id, $error];
@@ -463,7 +463,7 @@ function obeguu_ajax() {
   );
 }
 
-function obelin_log_bulk_normalize() {
+function oberin_log_bulk_normalize() {
   $errors = [];
   $passfiles = [];
   foreach(@$_POST['logs'] as $name) {
@@ -494,7 +494,7 @@ function obelin_log_bulk_normalize() {
 }
 
 // ログの削除処理
-function obelin_log_bulk_delete() {
+function oberin_log_bulk_delete() {
   $deleted = 0;
   $errors = [];
   $passfiles = [];
@@ -515,7 +515,7 @@ function obelin_log_bulk_delete() {
     }
 
     // ログの記録を削除
-    if (obelin_log_date_update($name, false, false) !== false) {
+    if (oberin_log_date_update($name, false, false) !== false) {
       $errors[] = [$name, 'ログの記録除去失敗'];
     }
     $passfiles[] = $name;
@@ -579,11 +579,11 @@ function add_custom_menu_page() {
 
     <div>
       <form id="obeguu-form" method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
-        <!-- <input type="hidden" name="action" value="obelin_log_normalize"> -->
+        <!-- <input type="hidden" name="action" value="oberin_log_normalize"> -->
         <?php
         wp_nonce_field(
-          'admin_post_obelin_log_manage'
-          , 'obelin_log_nonce'
+          'admin_post_oberin_log_manage'
+          , 'oberin_log_nonce'
         );
         ?>
         <div id="log-drop-area" style="padding: 3rem; border: 0.2rem #999999; border-style: dashed dotted; margin: 2rem 0;">
