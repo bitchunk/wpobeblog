@@ -22,11 +22,11 @@ $normalize_words = [
 
   ['/^You\scontinue\s([\w\s]+)\s.+/', 'result'],  // minning/lumberjucking
 
-  ['/^You\smust\starget\sto\smine\sfor\sore\./', 'action'], // Mining
-  ['/^You\smust\starget\sto\stree\sfor\swood\./', 'action'], // Lumberjucking
-  ['/^You\smust\sbe\sstanding\snear\swater\sto\sfish\./', 'action'], // Fishing
-  ['/^You\smust\sbe\sstanding\snear\sa\sforge\./', 'action'], // Blacksmithing
-  ['/^You\smust\sbe\sstanding\snear\sa\sfire\./', 'action'], // Cooking
+  ['/^You\smust\starget\sa\srock\sfor\sore\./', 'result'], // Mining
+  ['/^You\smust\starget\sa\stree\sto\sharvest\swood\./', 'result'], // Lumberjucking
+  ['/^You\smust\sbe\sstanding\snear\swater\sto\sfish\./', 'result'], // Fishing
+  ['/^You\smust\sbe\sstanding\snear\sa\sforge\./', 'result'], // Blacksmithing
+  ['/^You\smust\sbe\sstanding\snear\sa\sfire\./', 'result'], // Cooking
   ['/^You\sdon\'t\shave\senough\smana\sto\scast\sthat\sspell\./', 'result'],  // Mixing
   ['/^You\sdon\'t\shave\senough\sreagents\./', 'result'],  // Mixing
 
@@ -53,6 +53,8 @@ $normalize_words = [
   ['/^That\scontainer\s([\w\s]+)\s.+/', 'action'], // Lock picking/Removing trap
   ['/^You\sare\sbeginning\s([\w\s]+)\s.+/', 'action'], // Eating
 
+  ['/^You\smust\sbe\sstanding\son\sa\s([\w\s]+)\scontainer\./', 'action'], // Lock picking/Removing trap
+
   ['/^The\sspell\sfizzles\./', 'action'], // Spelling
 
   ['/^Dropped:\s+([\w\s(+):]+)$/', 'action'], //Dropping
@@ -61,6 +63,7 @@ $normalize_words = [
   ['/^Given([\w\s]+)?:\s+([\w\s(+)]+)+/', 'action'], // Giving
   ['/^Bought:\s+([\w\s(+):]+)$/', 'action'], //Buying
   ['/^Paid:\s+([\w\s]+)$/', 'action'], //Paying
+  ['/^Caught:\s+([\w\s]+)$/', 'action'], //Fishing
 
   //インベントリ、その場でまとめて表示
 ];
@@ -94,6 +97,7 @@ function obelin_log_normalize($text) {
   $action_start = [];// 即時結果作業の連続開始情報
   $lasti = count($textl);
   $talk_count = 0;
+
   // 一行ずつ処理
   global $normalize_words;
   global $login_reg;
@@ -114,20 +118,22 @@ function obelin_log_normalize($text) {
             if (empty($work_start[$t])){
               $work_start[$t] = $start_line;
             }
-            $work_text_stack[] = $t; // すべてのスタック
+            $work_text_stack[] = $t; // 作業のスタック
+          } elseif ($type == 'result') {
+            $work_text_stack[] = $t; // 結果のスタック
           } elseif ($type == 'action'){
             if (empty($action_start[$t])){
               $action_start[$t] = $start_line;
               // var_dump($start_line, $t);
             }
-            $action_text_stack[] = $t; // 即時結果のスタック
+            $action_text_stack[] = $t; // 行動のスタック
             $is_action = true;
-          } else {
-            $work_text_stack[] = $t; // すべてのスタック
+
           }
         }
         $talk_count = 0;
         $is_normalize = true;
+        break;
       }
     }
     if ($is_normalize) {
@@ -151,15 +157,6 @@ function obelin_log_normalize($text) {
         array_splice($text_normalized, $action_start[$w] + $inserted, 0, $wn);
         $inserted += 1;
       }
-      // $w = array_shift($action_start);
-      // var_dump( count($text_normalized), $action_text_stack);
-      // $inserts = ['[**Actions result**]'];
-      // foreach(array_count_values($action_text_stack) as $w => $num) {
-      //   $wn = $num > 1 ? "- $w (x $num)" : "- $w";
-      //   $inserts[] = $wn;
-      // }
-      // $w = array_shift($action_start);
-      // array_splice($text_normalized, $w, 0, $inserts);
       $action_start = [];
       $action_text_stack = []; //作業スタックをリセット
     }
@@ -173,19 +170,21 @@ function obelin_log_normalize($text) {
         $wn = $num > 1 ? "- $w (x $num)" : "- $w";
         if (isset($work_start[$w])) {
           $insert_start[] = $wn;
-          $insert_index_start = $insert_index_start ?? $work_start[$w];
+          $insert_index_start = $insert_index_start ?? ($work_start[$w] + 1);
         } else {
           $insert_result[] = $wn;
         }
         $inserts = [];
       }
       if (!empty($insert_start)) {
+        // var_dump('start', $insert_start);
         array_unshift($insert_start, '[**Works start**]');
         array_splice($text_normalized, $insert_index_start, 0, $insert_start);
       }
       if (!empty($insert_result)) {
+        // var_dump('result',$insert_result);
         array_unshift($insert_result, '[**Works result**]');
-        array_splice($text_normalized, -1, 0, $insert_result);
+        array_splice($text_normalized, count($text_normalized), 0, $insert_result);
       }
 
       $work_start = [];
@@ -355,7 +354,7 @@ function obeguu_enqueue_uploader($hook_suffix) {
   }
   wp_enqueue_script(
     'obeguu-uploader',
-    get_stylesheet_directory_uri() . '/js/obeguu_uploader.js',
+    get_stylesheet_directory_uri() . '/js/obeguu_ajax.js',
     [],
     '1.0.0',
     true
@@ -366,7 +365,7 @@ function obeguu_enqueue_uploader($hook_suffix) {
     'obeguuUploader',
     [
       'ajaxUrl' => admin_url('admin-ajax.php'),
-      'nonce'   => wp_create_nonce('obelin_log_upload'),
+      'nonce'   => wp_create_nonce('obeguu_ajax'),
     ]
   );
 }
@@ -400,10 +399,10 @@ function obeguu_process($name, $path, $update = null) {
 
 // ログのアップロード処理（JSからのAJAX）
 add_action(
-  'wp_ajax_obelin_log_upload'
-  , 'obelin_log_upload'
+  'wp_ajax_obeguu_ajax'
+  , 'obeguu_ajax'
 );
-function obelin_log_upload() {
+function obeguu_ajax() {
   // 権限チェック
   if ( ! current_user_can('manage_options') ) {
     wp_die('権限がありません。');
@@ -411,10 +410,15 @@ function obelin_log_upload() {
 
   // Nonceチェック
   check_admin_referer(
-    'obelin_log_upload'
+    'obeguu_ajax'
     , 'nonce'
   );
 
+
+  if (isPost('log-action', 'current')) {
+    obelin_log_current_update();
+    return;
+  }
 
   if (isPost('log-action', 'normalize')) {
     obelin_log_bulk_normalize();
@@ -474,10 +478,7 @@ function obelin_log_bulk_normalize() {
       $errors[] = [$id, $error];
       continue;
     }
-    // $raw_dir = trailingslashit($obeguu_path). 'raw';
-    // $nz_dir = trailingslashit($obeguu_path). 'normalize';
-    // $raw_path = trailingslashit($raw_dir). $name;
-    // $nz_path = trailingslashit($nz_dir). $name;
+
     // PASSしたファイル
     $passfiles[] = [$id, 'PASS'];
 
@@ -490,7 +491,6 @@ function obelin_log_bulk_normalize() {
     ]
   );
     // var_dump($path, $obeg_path, $name);
-  // obelin_log_upload();
 }
 
 // ログの削除処理
@@ -532,7 +532,6 @@ function obelin_log_bulk_delete() {
   );
 }
 
-
 // 管理ページメニューにカスタムページ項目追加
 add_action('admin_menu', 'custom_menu_page');
 function custom_menu_page() {
@@ -570,6 +569,7 @@ function add_custom_menu_page() {
       display: flex;
       flex-direction: row;
       align-items: center;
+      gap: 5px;
     }
   </style>
   <div class="wrap">
@@ -609,7 +609,8 @@ function add_custom_menu_page() {
               <?php echo $month_options; ?>
             </select>
           </div>
-          <a href="/loglist">ログの一覧ページ</a>
+          <!-- <a id="obeguu-resent" class="button" href="">最近のログリストを更新</a> -->
+          <a href="/loglist" class="button-link">ログの一覧ページ</a>
         </div>
 
         <table class="wp-list-table widefat fixed striped table-view-list posts"><thead><tr>

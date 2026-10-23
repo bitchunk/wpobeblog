@@ -1,4 +1,5 @@
 document.addEventListener('DOMContentLoaded', () => {
+  // ドロップボックスアップローダー設定
   const dropzone = document.querySelector('#log-drop-area');
   const result = document.querySelector('#log-upload-result');
 
@@ -34,7 +35,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     formData.append(
       'action',
-      'obelin_log_upload'
+      'obeguu_ajax'
     );
 
     formData.append(
@@ -56,7 +57,6 @@ document.addEventListener('DOMContentLoaded', () => {
           credentials: 'same-origin'
         }
       );
-
       const data = await response.json();
 
       if (!data.success) {
@@ -79,25 +79,47 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
+  // プルダウンアクション設定
   const submit_button = document.querySelector('#obeguu-form');
-  submit_button.addEventListener('submit', async (event) => {
+  submit_button.addEventListener('submit', (event) => {
     const action = document.querySelector('#log-bulk-action-select')?.value;
-
-    event.preventDefault();
-
-    const formData = new FormData(event.currentTarget);
-    formData.append('action', 'obelin_log_upload');
-    formData.append('nonce', obeguuUploader.nonce);
-
-    // 何もしない
-    if (!formData.get('log-action')) {
-      return;
+    const actions = {
+      'normalize': '更新',
+      'delete': '削除',
     }
+      obeguu_ajax_async(event, action, actions[action]);
+  });
+
+  // 最近のログリスト更新ボタン
+  const current_anchor = document.querySelector('#obeguu-current');
+  current_anchor.addEventListener('submit', (event) => {
+    obeguu_ajax_async(event, 'recent', '最近のログリストの更新')
+  });
+
+  // Ajax送信共通処理
+  async function obeguu_ajax_async(form, action, message) {
+  // async function obeguu_ajax_async(event,message, requires) {
     try {
-      const actions = {
-        'normalize': '更新',
-        'delete': '削除',
-      }
+      event.preventDefault();
+      const formData = new FormData(event.currentTarget);
+      formData.append('action', 'obeguu_ajax');
+      formData.append('nonce', obeguuUploader.nonce);
+
+      formData.get('log-action').value = action;
+
+      // if (requires) {
+        // for (const req of requires.isArray ? requires : [requires]) {
+      // if (!formData.get('log-action')) {
+      // if (!formData.get(req)) {
+        // return;
+      // }
+        // }
+      // }
+      // 更新・削除結果に応じて一覧を更新
+      message = (message ?? '処理') + '中…';
+      result.textContent =
+      `${message}`;
+
       const response = await fetch(
         obeguuUploader.ajaxUrl,
         {
@@ -111,20 +133,20 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!data.success) {
         throw new Error(
           data.data?.message ||
-          `${actions}に失敗しました。`
+          `${message}に失敗しました。`
         );
       }
       // 更新・削除結果に応じて一覧を更新
-      const message = (actions[formData.get('log-action')] ?? '処理') + 'しました。';
+      message = (message ?? '処理') + 'しました。';
       result.textContent =
       `${data.data.passfiles.length}件${message}`;
 
       // リロード
       setTimeout(() => {
         window.location.reload();
-      }, 1000);
+      }, 1500);
     } catch (error) {
       result.textContent = error.message;
     }
-  });
+  }
 });

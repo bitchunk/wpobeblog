@@ -229,3 +229,41 @@ function obeguu_date_options() {
   $month_options = implode("\n", $month_options);
   return [$year_options, $month_options];
 }
+
+function obeguu_resent_files($num = 5) {
+  $base_path = get_obeguu_current_dir();
+  $base_url = get_obeguu_current_url();
+  $year_dirs = glob($base_path. '/*', GLOB_ONLYDIR);
+  $files = [];
+  $paths = [];
+  $types = ['normalize', 'raw'];
+  foreach($types as $type) {
+    $paths[$type] = [];
+    $filess[$type] = [];
+    foreach($year_dirs as $dir) {
+      $year = basename($dir);
+      $year_url = trailingslashit(trailingslashit($base_url). $year);
+      $dirs = glob($base_path. "/$year/$type/*");
+      foreach($dirs as $file) {
+        if (is_file($file)) {
+          // 更新日時を取得
+          $files[$type][$file] = filemtime($file);
+          $name = basename($file);
+          $paths[$type][] = "{$year_url}/{$type}/{$name}";
+        }
+      }
+    }
+    array_multisort($files[$type], SORT_DESC, $paths[$type]);
+    $paths[$type] = array_slice($paths[$type], 0, $num);
+  }
+  // 更新日時でソート（降順）
+  // var_dump($files);
+  return $paths;
+}
+
+// function obeguu_resent_update_files($num = 5) {
+//   return obeguu_resent_files('normalize', $num);
+// }
+// function obeguu_resent_upload_files($num = 5) {
+//   return obeguu_resent_files('raw', $num);
+// }
