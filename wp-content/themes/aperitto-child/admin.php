@@ -38,13 +38,18 @@ $normalize_words = [
   ['/^You\smust\starget\sa\screature\s([\w\s]+)\s?\.$/', 'action'], // Anatomy/Taming/Healing/Identifing
   ['/^You\sare\s([\w\s]+)\s?\.$/', 'action'], // Hidding/hunger
 
-  ['/^You\sapply\sthe\sbandages\./', 'action'], // healing
-  ['/^Your\swounds\sare\sbeing\sbandaged\./', 'action'], // healing
+  ['/^You\sfeel\s([\w\s]+)\s?\.$/', 'action'], // hunger
+
+  ['/^That\sbeast\shas\sbeen\stamed\.+/', 'action'], // Taiming
+
+  ['/^You\sapply\sthe\sbandages\./', 'action'], // Healing
+  ['/^Your\swounds\sare\sbeing\sbandaged\./', 'action'], // Healing
   ['/^You\sdon\'t\shave\sany\sbandages\./', 'action'],  // Healing
 
   ['/^You\sare\sunable\sto\s([\w\s]+)\s.+/', 'action'], // Anatomy
 
   ['/^You\senter\sa\smeditative\strance\.\.\./', 'action'], // Meditation
+  ['/^Your\smeditative\strance\sis\sbroken\./', 'action'], // Meditation
 
   ['/^Hidden\screatures\sare\srevealed\./', 'action'], // Detect hiddeing
   ['/^No\shidden\screatures\sare\sdetected\./', 'action'], // Detect hiddeing
@@ -56,7 +61,10 @@ $normalize_words = [
   ['/^You\smust\sbe\sstanding\son\sa\s([\w\s]+)\scontainer\./', 'action'], // Lock picking/Removing trap
 
   ['/^The\sspell\sfizzles\./', 'action'], // Spelling
+  ['/^You\srepair\sthe\sitem\.\.\./', 'action'], // Repairing
 
+  ['/^Withdrawn:\s+([\w\s(+):]+)$/', 'action'], //Withdrawing
+  ['/^Deposited:\s+([\w\s(+):]+)$/', 'action'], //Depositing
   ['/^Dropped:\s+([\w\s(+):]+)$/', 'action'], //Dropping
   ['/^Sold:\s+([\w\s(+):]+)$/', 'action'], // Selling
   ['/^Taken([\w\s]+)?:\s+([\w\s(+)]+)+/', 'action'], // Taking
@@ -64,6 +72,8 @@ $normalize_words = [
   ['/^Bought:\s+([\w\s(+):]+)$/', 'action'], //Buying
   ['/^Paid:\s+([\w\s]+)$/', 'action'], //Paying
   ['/^Caught:\s+([\w\s]+)$/', 'action'], //Fishing
+
+  ['/^\d+\sN\sby\s\d+\sE$/', 'action'], //Navigatioin
 
   //インベントリ、その場でまとめて表示
 ];
@@ -613,7 +623,7 @@ function add_custom_menu_page() {
           <a href="/loglist" class="button-link">ログの一覧ページ</a>
         </div>
 
-        <table class="wp-list-table widefat fixed striped table-view-list posts"><thead><tr>
+        <table id="loglist" class="wp-list-table widefat fixed striped table-view-list posts"><thead><tr>
           <td id="cb" class="manage-column column-cb check-column"><input id="cb-select-all-1" type="checkbox">
             <label for="cb-select-all-1"><span class="screen-reader-text">すべて選択</span></label></td>
             <th>生ログ（アップロード）</th>

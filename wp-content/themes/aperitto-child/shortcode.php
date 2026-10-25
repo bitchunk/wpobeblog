@@ -14,6 +14,10 @@ function obeguu_list() {
   ob_start();
   ?>
   <style>
+body.no-scroll {
+  overflow: hidden;
+}
+
   table td .date {
     font-size: 0.9rem;
   }
@@ -21,6 +25,20 @@ function obeguu_list() {
     display: inline-block;
     float: right;
     margin-left: 0.5rem;
+  }
+  a{
+     pointer-events: auto;
+  }
+  #obeguu-person {
+      z-index: 8000;
+      cursor: pointer;
+  }
+  img.hidden {
+    display: none;
+  }
+  #obeguu-form .tablenav .actions {
+    display: flex;
+    align-items: end;
   }
   </style>
   <!-- TODOセレクトイベント発火 -->
@@ -37,11 +55,16 @@ function obeguu_list() {
             <?php echo $month_options; ?>
           </select>
         </div>
+        <div id="obeguu-person">
+          <img src="<?php echo get_stylesheet_directory_uri(). "/img/person.png"; ?>" class="visible" />
+          <img src="<?php echo get_stylesheet_directory_uri(). "/img/person_hover.png"; ?>" class="hidden" />
+      </div>
+      <img id="bag" src="<?php echo get_stylesheet_directory_uri(). "/img/bag.png"; ?>" class="hidden" />
       </div>
     </div>
   </form>
   <div class="clear" style="clear:both;"></div>
-  <table class="wp-list-table">
+  <table id="loglist" class="wp-list-table">
     <thead>
       <th>生ログ</th><th>作業カットログ</th><th>追加日</th><th>更新日</th>
     </thead>

@@ -107,14 +107,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
       formData.get('log-action').value = action;
 
-      // if (requires) {
-        // for (const req of requires.isArray ? requires : [requires]) {
-      // if (!formData.get('log-action')) {
-      // if (!formData.get(req)) {
-        // return;
-      // }
-        // }
-      // }
       // 更新・削除結果に応じて一覧を更新
       message = (message ?? '処理') + '中…';
       result.textContent =
