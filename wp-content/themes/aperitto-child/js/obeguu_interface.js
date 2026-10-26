@@ -95,8 +95,12 @@ document.addEventListener('DOMContentLoaded', () => {
   function personPickup(text) {
     matches = text.match(/^\((.+?)\):/mg);
     // console.log(matches);
-    const persons = [...new Set(matches)];
-    persons.sort((a, b) => a.localeCompare(b));
+    const persons = {};
+    for (const name of matches) {
+      persons[name] = (persons[name] ?? 0) + 1;
+    }
+    // const persons = [...new Set(matches)];
+    // persons.sort((a, b) => a.localeCompare(b));
     const div = document.createElement('div');
     div.style =`
     background: rgba(192, 128, 0, 0.4);
@@ -181,11 +185,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     header.innerHTML = 'Persons';
     header.id = 'persons-header';
-    // textarea.append(header, hr);
+
     let ancors = '';
-    persons.forEach((v) => {
-      ancors += `<a href="">${v.replace(/^\((.+)\):$/, "$1")}</a><br />`;
-    });
+    for (const [i, v] of Object.entries(persons)) {
+      const p = i.replace(/^\((.+)\):$/, "$1");
+      ancors += `<a href="" data-person="${p}">${p} (${v})</a><br />`;
+    }
+
     textarea.innerHTML = ancors;
     textwindow.append(header, hr, textarea);
     textwindow.addEventListener('click', (event) => {
@@ -193,7 +199,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (event.target.href) {
         // Persons talk を開く
         const f = document.createElement('div');
-        const preg = `^(${event.target.innerText}):.*`.replaceAll('(', '\\(').replaceAll(')', '\\)')
+        const preg = `^(${event.target.dataset.person}):.*`.replaceAll('(', '\\(').replaceAll(')', '\\)')
         const reg = new RegExp(preg, 'mg');
         const personsTalk = text.match(reg);
         textwindow.replaceChildren();
