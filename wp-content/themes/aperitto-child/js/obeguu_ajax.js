@@ -92,7 +92,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // 最近のログリスト更新ボタン
   const current_anchor = document.querySelector('#obeguu-current');
-  current_anchor.addEventListener('submit', (event) => {
+  current_anchor?.addEventListener('submit', (event) => {
     obeguu_ajax_async(event, 'recent', '最近のログリストの更新')
   });
 
