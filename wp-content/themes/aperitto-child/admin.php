@@ -1,6 +1,4 @@
 <?php
-// $talk_reg = '/^\(+.+\)+\:\s/';
-$talk_reg = '/^\(+[^()]+\)+:\s/';
 $login_reg = '/^Welcome\./';
 $normalize_words = [
   // 作業開始
@@ -40,7 +38,8 @@ $normalize_words = [
 
   ['/^You\sfeel\s([\w\s]+)\s?\.$/', 'action'], // hunger
 
-  ['/^That\sbeast\shas\sbeen\stamed\.+/', 'action'], // Taiming
+  // ['/^That\sbeast\shas\sbeen\stamed\.+/', 'action'], // Taiming
+  ['/^The\sbeast\shas\sbeen\stamed\.+/', 'action'], // Taiming
 
   ['/^You\sapply\sthe\sbandages\./', 'action'], // Healing
   ['/^Your\swounds\sare\sbeing\sbandaged\./', 'action'], // Healing
@@ -60,6 +59,8 @@ $normalize_words = [
 
   ['/^You\smust\sbe\sstanding\son\sa\s([\w\s]+)\scontainer\./', 'action'], // Lock picking/Removing trap
 
+  ['/^It\sis\stoo\sdark.+/', 'action'], // Tracking in dark(V48)
+
   ['/^The\sspell\sfizzles\./', 'action'], // Spelling
   ['/^You\srepair\sthe\sitem\.\.\./', 'action'], // Repairing
 
@@ -74,6 +75,7 @@ $normalize_words = [
   ['/^Caught:\s+([\w\s]+)$/', 'action'], //Fishing
 
   ['/^\d+\sN\sby\s\d+\sE$/', 'action'], //Navigatioin
+  ['/^You\sdrink\sthe\spotion\.$/', 'action'], //Drinking potion
 
   //インベントリ、その場でまとめて表示
 ];
@@ -94,7 +96,12 @@ function oberin_log_unpack($files, $i) {
 // ログを正規化(utf-8)処理
 function oberin_log_normalize($text) {
   //SJIS -> UTF-8
-  $text = mb_convert_encoding($text, 'UTF-8', 'SJIS');
+  $enc = mb_detect_encoding($text, "SJIS, JIS, EUC-JP, ISO-2022-JP, ASCII, UTF-8");
+  // var_dump(mb_detect_encoding($text, "SJIS, JIS, EUC-JP, ISO-2022-JP, ASCII, UTF-8"));
+  if ($enc) {
+    $text = mb_convert_encoding($text, 'UTF-8', $enc);
+  }
+
   // $from_encoding = mb_detect_encoding($text, 'ASCII, ISO-2022-JP, UTF-8, EUC-JP, SJIS, UTF-8', true);
   // var_dump($from_encoding);
   $text = preg_replace("/\r\n|\r|\n/u", "\n", $text);
@@ -103,11 +110,12 @@ function oberin_log_normalize($text) {
   $text_normalized = [];
   $work_text_stack = []; // 会話まじり作業
   $action_text_stack = []; // 即決作業
-  $work_start = [];// 会話まじり作業の連続開始情報
+  // $work_start = [];// 会話まじり作業の連続開始情報
+  $work_start_time = []; // v48ログ用時刻付き
   $action_start = [];// 即時結果作業の連続開始情報
+  $action_start_time = []; // v48ログ用時刻付き
   $lasti = count($textl);
   $talk_count = 0;
-
   // 一行ずつ処理
   global $normalize_words;
   global $login_reg;
@@ -116,10 +124,16 @@ function oberin_log_normalize($text) {
     $is_login = preg_match($login_reg, $t);
     $is_action = false;
 
+    preg_match('/^(\[[!-~ ]+\]:\s)?(.+)/', $t, $t);
+    list($full, $time, $t) = $t;
+    $has_time = !empty($time);
+    $time = preg_replace('/.*(\d+:\d+:\d+).*/', '[$1]: ', $time);
+    // var_dump($time, $t);
     //作業内容
     $is_normalize = false;
     foreach($normalize_words as $v) {
       list($word, $type) = $v;
+      // $t = preg_replace('/^\[[!-~ ]+\]:\s(.+)/', '$1', $t);
       if (preg_match($word, $t, $match)) {
         $start_line = count($text_normalized); // 作業開始行
         if (isset($match[0])) {
@@ -127,6 +141,7 @@ function oberin_log_normalize($text) {
             //作業開始を記録
             if (empty($work_start[$t])){
               $work_start[$t] = $start_line;
+              $work_start_time[$t] = $time;
             }
             $work_text_stack[] = $t; // 作業のスタック
           } elseif ($type == 'result') {
@@ -134,11 +149,11 @@ function oberin_log_normalize($text) {
           } elseif ($type == 'action'){
             if (empty($action_start[$t])){
               $action_start[$t] = $start_line;
-              // var_dump($start_line, $t);
+              $action_start_time[$t] = $time;
+              // var_dump('action:', $start_line, $t);
             }
             $action_text_stack[] = $t; // 行動のスタック
             $is_action = true;
-
           }
         }
         $talk_count = 0;
@@ -162,12 +177,25 @@ function oberin_log_normalize($text) {
       // $inserts = ['[**Actions result**]'];
       $inserted = 0; // 挿入した行をカウント
       foreach(array_count_values($action_text_stack) as $w => $num) {
-        $wn = $num > 1 ? "- $w (x $num)" : "- $w";
+        $d = '';
+        if ($has_time) {
+          // preg_match('/\[(.+)\]/', $action_start_time[$w], $s);
+          preg_match('/(\d+:\d+:\d+)/', $action_start_time[$w], $s);
+          preg_match('/(\d+:\d+:\d+)/', $time, $e);
+          preg_match('/(\d+:\d+:\d+)/', $time, $et);
+          $dm = "[{$s[1]} ~ {$et[1]}]: ";
+          $ds = "[{$e[1]}]: ";
+        }
+
+        $wn = $num > 1 ? "- $dm$w (x $num)" : "- $ds$w";
         // $inserts[] = $wn;
+        // var_dump(count($text_normalized), $action_start[$w],$inserted, 0, $wn);
         array_splice($text_normalized, $action_start[$w] + $inserted, 0, $wn);
+
         $inserted += 1;
       }
       $action_start = [];
+      $action_start_time = [];
       $action_text_stack = []; //作業スタックをリセット
     }
 
@@ -176,9 +204,14 @@ function oberin_log_normalize($text) {
       $insert_start = [];
       $insert_result = [];
       $insert_index_start = null;
+      $s;
+      $e;
+
       foreach(array_count_values($work_text_stack) as $w => $num) {
         $wn = $num > 1 ? "- $w (x $num)" : "- $w";
         if (isset($work_start[$w])) {
+          preg_match('/(\d+:\d+:\d+)/', $work_start_time[$w], $s);
+          // preg_match('/\[(.+)\]/', $work_start_time[$w], $s);
           $insert_start[] = $wn;
           $insert_index_start = $insert_index_start ?? ($work_start[$w] + 1);
         } else {
@@ -188,27 +221,33 @@ function oberin_log_normalize($text) {
       }
       if (!empty($insert_start)) {
         // var_dump('start', $insert_start);
-        array_unshift($insert_start, '[**Works start**]');
+        // array_unshift($insert_start, '[**Works start**]');
+        array_unshift($insert_start, "[**Works start** {$s[1]}]");
         array_splice($text_normalized, $insert_index_start, 0, $insert_start);
       }
       if (!empty($insert_result)) {
+        preg_match('/(\d+:\d+:\d+)/', $time, $e);
+        // preg_match('/\[(.+)\]/', $time, $e);
         // var_dump('result',$insert_result);
-        array_unshift($insert_result, '[**Works result**]');
+        // array_unshift($insert_result, '[**Works result**]');
+        array_unshift($insert_result, "[**Works result** {$e[1]}]");
         array_splice($text_normalized, count($text_normalized), 0, $insert_result);
       }
 
       $work_start = [];
+      $work_start_time = [];
       $work_text_stack = []; //作業スタックをリセット
       $talk_count = 0;
     }
-    $text_normalized[] = $t;
-  }
+    $text_normalized[] = $time.$t;
 
+  }
   return implode("\n", $text_normalized);
 }
 
 // 正規化ログの保存処理
 function oberin_log_save($name, $text_raw, $text_nz) {
+  global $errors;
   $obeguu_path = get_obeguu_path($name);
   // var_dump($obeguu_path, $log_date);
 
@@ -216,18 +255,21 @@ function oberin_log_save($name, $text_raw, $text_nz) {
   $nz_dir = trailingslashit($obeguu_path). 'normalize';
 
   if (!(wp_mkdir_p($raw_dir) && wp_mkdir_p($nz_dir))) {
-    wp_send_json_error(array('message' => '保存先を作成できませんでした。'), 500);
+    // wp_send_json_error(array('message' => '保存先を作成できませんでした。'), 500);
+    $errors[] = '保存先を作成できませんでした。';
     return false;
   }
 
   $raw_hta = trailingslashit($raw_dir). '.htaccess';
   if (!file_exists($raw_hta) && !file_put_contents($raw_hta, 'AddCharset SJIS .txt')) {
-    wp_send_json_error(array('message' => '.htaccessを作成できませんでした。'), 500);
+    // wp_send_json_error(array('message' => '.htaccessを作成できませんでした。'), 500);
+    $errors[] = '.htaccessを作成できませんでした。(raw folder)';
     return false;
   }
   $nz_hta = trailingslashit($nz_dir). '.htaccess';
   if (!file_exists($nz_hta) && !file_put_contents($nz_hta, 'AddCharset UTF-8 .txt')) {
-    wp_send_json_error(array('message' => '.htaccessを作成できませんでした。'), 500);
+    // wp_send_json_error(array('message' => '.htaccessを作成できませんでした。'), 500);
+    $errors[] = '.htaccessを作成できませんでした。(normalize folder)';
     return false;
   }
 
@@ -238,7 +280,9 @@ function oberin_log_save($name, $text_raw, $text_nz) {
     $nz_path = $nz_path. '.txt';
   }
   if (!(file_put_contents($raw_path, $text_raw) && file_put_contents($nz_path, $text_nz))) {
-    wp_send_json_error(array('message' => 'ファイルを保存できませんでした。'), 500);
+    // var_dump($nz_path, $raw_path, $text_nz, $text_raw);
+    // wp_send_json_error(array('message' => 'ファイルを保存できませんでした。'), 500);
+    $errors[] = 'ログファイルを保存できませんでした。';
     return false;
   }
   return [$name, basename($raw_path), basename($nz_path)];
@@ -388,6 +432,7 @@ function obeguu_process($name, $path, $update = null) {
   }
   // ログを正規化(utf-8)
   $utf_text = oberin_log_normalize($text);
+
   if ($utf_text === false) {
     return 'ログの正規化失敗';
   }
@@ -395,7 +440,7 @@ function obeguu_process($name, $path, $update = null) {
   // 正規化ログを保存
   $filenames = oberin_log_save($name, $text, $utf_text);
   if ($filenames === false) {
-    return 'ログの保存失敗';
+    return "ログの保存失敗({$name})";
   }
   list($name, $raw_name, $nz_name) = $filenames;
   // ログの更新日など記録
@@ -441,7 +486,8 @@ function obeguu_ajax() {
   }
 
   $files = $_FILES['files'];
-  $errors = [];
+  // $errors = [];
+  global $errors;
   $passfiles = [];
   foreach($files['name'] as $i => $v) {
     // ログを展開
@@ -464,17 +510,25 @@ function obeguu_ajax() {
     $passfiles[] = [$id, 'PASS'];
   }
 
-  wp_send_json_success(
-    [
-      'message' => count($passfiles). '件のファイルを保存しました。',
-      'passfiles' => $passfiles,
-      'error' => $errors,
-    ]
-  );
+  if (empty($errors)) {
+    wp_send_json_success(
+      [
+        'message' => count($passfiles). '件のファイルを保存しました。',
+        'passfiles' => $passfiles,
+        'error' => $errors,
+      ]
+    );
+  } else {
+    wp_send_json_error(
+      [
+        'error' => $errors
+      ], 500
+    );
+  }
 }
 
 function oberin_log_bulk_normalize() {
-  $errors = [];
+  global $errors;
   $passfiles = [];
   foreach(@$_POST['logs'] as $name) {
     $id = $name ? $name : ('file-no.' . $i);
@@ -493,20 +547,27 @@ function oberin_log_bulk_normalize() {
     $passfiles[] = [$id, 'PASS'];
 
   }
-  wp_send_json_success(
-    [
-      'message' => count($passfiles). '件のファイルを再変換しました。',
-      'passfiles' => $passfiles,
-      'error' => $errors,
-    ]
-  );
-    // var_dump($path, $obeg_path, $name);
+  if (empty($errors)) {
+    wp_send_json_success(
+      [
+        'message' => count($passfiles). '件のファイルを再変換しました。',
+        'passfiles' => $passfiles,
+        'error' => $errors,
+      ]
+    );
+  } else {
+    wp_send_json_error(
+      [
+        'error' => $errors
+      ], 500
+    );
+  }    // var_dump($path, $obeg_path, $name);
 }
 
 // ログの削除処理
 function oberin_log_bulk_delete() {
+  global $errors;
   $deleted = 0;
-  $errors = [];
   $passfiles = [];
   foreach(@$_POST['logs'] as $name) {
     // ログファイルを削除
@@ -532,14 +593,21 @@ function oberin_log_bulk_delete() {
 
     $deleted += 1;
   }
-
-  wp_send_json_success(
-    [
-      'message' => $deleted. '件のファイルを削除しました。',
-      'passfiles' => $passfiles,
-      'error' => $errors,
-    ]
-  );
+  if (empty($errors)) {
+    wp_send_json_success(
+      [
+        'message' => $deleted. '件のファイルを削除しました。',
+        'passfiles' => $passfiles,
+        'error' => $errors,
+      ]
+    );
+  } else {
+    wp_send_json_error(
+      [
+        'error' => $errors
+      ], 500
+    );
+  }
 }
 
 // 管理ページメニューにカスタムページ項目追加
@@ -575,12 +643,12 @@ function add_custom_menu_page() {
 
   ?>
   <style>
-    .tablenav, .bulkactions {
-      display: flex;
-      flex-direction: row;
-      align-items: center;
-      gap: 5px;
-    }
+  .tablenav, .bulkactions {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 5px;
+  }
   </style>
   <div class="wrap">
     <div>
