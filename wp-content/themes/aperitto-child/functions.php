@@ -59,6 +59,8 @@ function isGet($key, $value = null) {
   return false;
 }
 
+// グローバル値
+$errors = [];
 $log_year = isGet('obeguu-year');
 $log_month = isGet('obeguu-month');
 $log_date = false;
@@ -123,7 +125,11 @@ function obeguu_default_year($name = null) {
 }
 
 function obeguu_date_parse($date) {
-  return date_parse_from_format('n-j-Y', preg_replace('/_/', '-', $date) ?? null);
+  // var_dump($date);
+  preg_match('/(\d+)\D+(\d+)\D+(\d+)/', $date, $m);
+  list($a, $f, $s, $t) = $m;
+  return date_parse_from_format(strlen($f) == 4 ? 'Y-n-j' : 'n-j-Y', "{$f}-{$s}-{$t}");
+  // return date_parse_from_format('n-j-Y', preg_replace('/_/', '-', $date) ?? null);
 }
 
 function get_obeguu_link($name = null) {
