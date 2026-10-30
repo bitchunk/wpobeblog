@@ -36,14 +36,18 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   const person = document.querySelector('#obeguu-person');
-  person.addEventListener('mouseenter', (event) => {
+
+  // if (!person) {
+  //   return;
+  // }
+  person?.addEventListener('mouseenter', (event) => {
     personHover(true);
   });
-  person.addEventListener('mouseleave', (event) => {
+  person?.addEventListener('mouseleave', (event) => {
     personHover(false);
   });
 
-  person.addEventListener('click', (event) => {
+  person?.addEventListener('click', (event) => {
     const bag = document.querySelector('#bag');
     bag.className = 'visible';
     window.document.body.style.cursor = 'none';
@@ -74,7 +78,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   const bag = document.querySelector('#bag');
-  bag.addEventListener('click', (event) => {
+  bag?.addEventListener('click', (event) => {
     personHover(false);
     bag.className = 'hidden';
     window.document.body.style.cursor = '';
@@ -93,12 +97,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // PersonWindowポップアップ
   function personPickup(text) {
-    matches = text.match(/^\((.+?)\):/mg);
+    // matches = text.match(/^\((.+?)\):/mg);
+    matches = text.match(/\((.+?)\):/mg);
+    // matches = text.match(/\]*:*\s*\((.+?)\):/mg);
+
     // console.log(matches);
-    const persons = {};
-    for (const name of matches) {
-      persons[name] = (persons[name] ?? 0) + 1;
+    const personCnt = {};
+    for (const name of matches ?? []) {
+      personCnt[name] = (personCnt[name] ?? 0) + 1;
     }
+    const persons = Object.fromEntries(
+      Object.entries(personCnt).sort(([a], [b]) => a.localeCompare(b))
+    );
     // const persons = [...new Set(matches)];
     // persons.sort((a, b) => a.localeCompare(b));
     const div = document.createElement('div');
@@ -161,17 +171,17 @@ document.addEventListener('DOMContentLoaded', () => {
     text-shadow: none;
     padding: 0;
     margin: 0;
-    font-size: 1rem;
+    font-size: 0.875rem;
     `;
     const img  = wpValues.imagePath + "person_shadow.png";
     header.style = `
     font-family: "Apple chancery", "Monotype Corsiva";
-    font-size: 3rem;
-    line-height: 2.5rem;
+    font-size: 2rem;
+    line-height: 2rem;
     display: flex;
     flex: none;
     align-items: end;
-    height: 3rem;
+    height: 3.2rem;
     over-flow: hidden;
     background: url("${img}") no-repeat right top;
     cursor: pointer;
@@ -199,12 +209,14 @@ document.addEventListener('DOMContentLoaded', () => {
       if (event.target.href) {
         // Persons talk を開く
         const f = document.createElement('div');
-        const preg = `^(${event.target.dataset.person}):.*`.replaceAll('(', '\\(').replaceAll(')', '\\)')
-        const reg = new RegExp(preg, 'mg');
+        // const preg = `^(${event.target.dataset.person}):.*`.replaceAll('(', '\\(').replaceAll(')', '\\)')
+        const preg = `(${event.target.dataset.person}):\\s`.replaceAll('(', '\\(').replaceAll(')', '\\)');
+        const reg = new RegExp('^(\\[[!-~ ]+\\]:\\s)?' + preg + '.*', 'mg');
+        const rep = new RegExp(preg, 'g');
         const personsTalk = text.match(reg);
         textwindow.replaceChildren();
-        header.innerHTML = '&lt;&lt; Persons';
-        textarea.innerHTML = personsTalk.join('\n');
+        header.innerHTML = `&lt;&lt; ${event.target.dataset.person}`;
+        textarea.innerHTML = personsTalk ? personsTalk.join('\n').replaceAll(rep, '') : '';
         textwindow.append(header, hr, textarea);
         textwindow.className = 'persons-talk';
       } else if (event.target.id == 'persons-header') {
