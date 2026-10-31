@@ -115,11 +115,17 @@ function get_obeguu_current_dir() {
   return $base_dir;
 }
 
+function obeguu_default_month($name = null) {
+}
+
+// ログディレクトリの年代＆グローバル値の更新
 function obeguu_default_year($name = null) {
+  global $log_year;
   $base_path = get_obeguu_current_dir();
   if (empty($name)) {
     $year_dirs = glob($base_path. '/*', GLOB_ONLYDIR);
-    $name = !empty($year_dirs) ? '1-1-'. basename($year_dirs[0]) : '1-1-2002';
+    $log_year = !empty($year_dirs) ? basename(array_last($year_dirs)) : '2002'; // globalを更新
+    $name = '1-1-'. $log_year;
   }
   return $name;
 }
@@ -205,12 +211,15 @@ function load_date_list($year = null, $month = null) {
   // 月のリストが見つからなかったら見つかった月で絞り直し
   if (empty($date_list)) {
     $current_month = false;
-    foreach($csv as $row) {
+    // csv降順でサーチ（最新の月を検出）
+    foreach(array_reverse($csv) as $row) {
       if ($row[4] === $current_month || empty($current_month)) {
         $date_list[] = $row;
         $current_month = $row[4];
       }
     }
+    // ファイルは昇順にもどす
+    $date_list = array_reverse($date_list);
   }
 
   // それでも見つからなかった。
@@ -278,23 +287,3 @@ function obeguu_resent_files($num = 5) {
   // var_dump($files);
   return $paths;
 }
-//
-// // テキストをAJAXで取得
-// add_action(
-//   'wp_ajax_obeguu_text_ajax'
-//   , 'obeguu_text_ajax'
-// );
-//
-// function obeguu_text_ajax() {
-//   $text_name = isGet('text_name');
-//   if ($text_name) {
-//     $obeguu_path = trailingslashit(get_obeguu_path($text_name));
-//     $name = basename($text_name);
-//     if (preg_match('/raw/', $text_name)) {
-//       $text = file_get_contents($obeguu_path. "/raw/$name");
-//     } elseif (preg_match('/normalize/', $text_name)) {
-//       $text = file_get_contents($obeguu_path. "/normalize/$name");
-//     }
-//   }
-//   return $text ?? false;
-// }

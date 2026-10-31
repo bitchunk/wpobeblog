@@ -182,7 +182,7 @@ function oberin_log_normalize($text) {
           // preg_match('/\[(.+)\]/', $action_start_time[$w], $s);
           preg_match('/(\d+:\d+:\d+)/', $action_start_time[$w], $s);
           preg_match('/(\d+:\d+:\d+)/', $time, $e);
-          preg_match('/(\d+:\d+:\d+)/', $time, $et);
+          preg_match('/(\d+:\d+:\d+)/', $time, $et); // e et は同じ…
           $dm = "[{$s[1]} ~ {$et[1]}]: ";
           $ds = "[{$e[1]}]: ";
         }
